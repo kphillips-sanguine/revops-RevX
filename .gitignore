@@ -1,0 +1,16 @@
+# Environment secrets
+.env
+*.env.local
+
+# Docker
+docker-compose.extra.yml
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Node
+node_modules/
+
+# Workspace data (never commit agent state)
+data/

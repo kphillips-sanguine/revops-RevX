@@ -1,0 +1,92 @@
+{
+  // ==========================================================================
+  // OpenClaw Configuration — Sanguine Bio Team
+  // Deploy this to ~/.openclaw/openclaw.json inside the container
+  // Use Sevalla secrets for all sensitive values (tokens, API keys)
+  // ==========================================================================
+
+  "gateway": {
+    "port": 8080,
+    "bind": "lan",
+    "auth": {
+      "token": "${OPENCLAW_GATEWAY_TOKEN}"
+    }
+  },
+
+  // --- Session Management ---
+  "session": {
+    "dmScope": "per-channel-peer",
+    "reset": {
+      "mode": "daily",
+      "atHour": 4
+    }
+  },
+
+  // --- Agent Defaults ---
+  "agents": {
+    "defaults": {
+      "model": {
+        "primary": "anthropic/claude-sonnet-4-5"
+      },
+      "workspace": "~/.openclaw/workspace",
+      "heartbeat": {
+        "every": "30m",
+        "target": "last"
+      }
+    },
+
+    // --- Multi-Agent: One per team member ---
+    // Uncomment and customize when ready for Phase 2
+    // "list": [
+    //   {
+    //     "id": "kevin",
+    //     "name": "Ozzy",
+    //     "default": true,
+    //     "workspace": "~/.openclaw/workspace-kevin",
+    //     "model": "anthropic/claude-opus-4-6"
+    //   },
+    //   {
+    //     "id": "team-member-2",
+    //     "name": "Agent Name",
+    //     "workspace": "~/.openclaw/workspace-member2",
+    //     "model": "anthropic/claude-sonnet-4-5"
+    //   }
+    // ]
+  },
+
+  // --- Bindings (Phase 2: route messages to agents) ---
+  // "bindings": [
+  //   { "agentId": "kevin", "match": { "channel": "discord", "peer": { "kind": "direct", "id": "KEVIN_DISCORD_USER_ID" } } },
+  //   { "agentId": "team-member-2", "match": { "channel": "discord", "peer": { "kind": "direct", "id": "MEMBER2_DISCORD_USER_ID" } } }
+  // ],
+
+  // --- Channel Integrations ---
+  "channels": {
+    // Discord — primary team channel
+    // "discord": {
+    //   "groupPolicy": "allowlist",
+    //   "token": "${DISCORD_BOT_TOKEN}",
+    //   "guilds": {
+    //     "YOUR_GUILD_ID": {
+    //       "channels": {
+    //         "CHANNEL_ID": { "allow": true, "requireMention": true }
+    //       }
+    //     }
+    //   }
+    // }
+  },
+
+  // --- Tools ---
+  "tools": {
+    "exec": {
+      "security": "full"
+    }
+  },
+
+  // --- Environment ---
+  "env": {
+    "vars": {
+      "TZ": "America/Denver"
+    }
+  }
+}

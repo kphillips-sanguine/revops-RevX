@@ -1,0 +1,35 @@
+# =============================================================================
+# OpenClaw Gateway — Local Development / Testing
+# For Sevalla deployment, only the Dockerfile matters (Sevalla builds from it)
+# This compose file is for local testing before pushing to Sevalla
+# =============================================================================
+
+services:
+  openclaw-gateway:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: openclaw-gateway
+    restart: unless-stopped
+    ports:
+      - "18789:8080"
+    env_file:
+      - .env
+    environment:
+      - NODE_ENV=production
+      - TZ=America/Denver
+    volumes:
+      # Persistent state — config, sessions, workspace, agent data
+      - openclaw-data:/home/node/.openclaw
+      # Optional: mount local config for testing
+      # - ./config/openclaw.json:/home/node/.openclaw/openclaw.json:ro
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8080/healthz"]
+      interval: 30s
+      timeout: 10s
+      start_period: 30s
+      retries: 3
+
+volumes:
+  openclaw-data:
+    driver: local
