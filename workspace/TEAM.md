@@ -11,7 +11,10 @@
 | Name | Role | Notes |
 |------|------|-------|
 | Kevin Phillips | Architect | Team lead, kphillips@sanguinebio.com |
-| *(add team members as they onboard)* | | |
+| Brian Vong | Technology Director | Team manager |
+| Deepthi Katragadda | Salesforce Administrator | Production support & admin changes |
+| Arindam Sarkar | Salesforce Developer | |
+| Shaikh Akbar | Salesforce Developer | |
 
 ## Salesforce Orgs
 
