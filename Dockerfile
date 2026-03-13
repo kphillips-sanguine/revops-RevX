@@ -34,7 +34,8 @@ RUN sf plugins install sfdx-git-delta \
 # RUN npm install -g @nicholasgasior/gog
 
 # Playwright browsers for browser tool (Chromium only)
-RUN node /app/node_modules/playwright-core/cli.js install --with-deps chromium || true
+# Disabled for now to reduce memory footprint — uncomment when browser automation is needed
+# RUN node /app/node_modules/playwright-core/cli.js install --with-deps chromium || true
 
 # Create persistent directories
 RUN mkdir -p /home/node/.openclaw \
