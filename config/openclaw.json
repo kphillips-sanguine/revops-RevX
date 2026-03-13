@@ -1,19 +1,22 @@
 {
-  // ==========================================================================
-  // OpenClaw Configuration — Sanguine Bio Team
-  // Deploy this to ~/.openclaw/openclaw.json inside the container
-  // Use Sevalla secrets for all sensitive values (tokens, API keys)
-  // ==========================================================================
+  "auth": {
+    "profiles": {
+      "anthropic:default": {
+        "provider": "anthropic",
+        "mode": "token"
+      }
+    }
+  },
 
   "gateway": {
     "port": 8080,
     "bind": "lan",
     "auth": {
+      "mode": "token",
       "token": "${OPENCLAW_GATEWAY_TOKEN}"
     }
   },
 
-  // --- Session Management ---
   "session": {
     "dmScope": "per-channel-peer",
     "reset": {
@@ -22,68 +25,58 @@
     }
   },
 
-  // --- Agent Defaults ---
   "agents": {
     "defaults": {
       "model": {
-        "primary": "anthropic/claude-sonnet-4-5"
+        "primary": "anthropic/claude-opus-4-6"
       },
-      "workspace": "~/.openclaw/workspace",
+      "models": {
+        "anthropic/claude-opus-4-6": {
+          "alias": "opus"
+        }
+      },
+      "workspace": "/home/node/.openclaw/workspace",
+      "compaction": {
+        "mode": "safeguard"
+      },
       "heartbeat": {
         "every": "30m",
         "target": "last"
+      },
+      "maxConcurrent": 4,
+      "subagents": {
+        "maxConcurrent": 8
       }
-    },
-
-    // --- Multi-Agent: One per team member ---
-    // Uncomment and customize when ready for Phase 2
-    // "list": [
-    //   {
-    //     "id": "kevin",
-    //     "name": "Ozzy",
-    //     "default": true,
-    //     "workspace": "~/.openclaw/workspace-kevin",
-    //     "model": "anthropic/claude-opus-4-6"
-    //   },
-    //   {
-    //     "id": "team-member-2",
-    //     "name": "Agent Name",
-    //     "workspace": "~/.openclaw/workspace-member2",
-    //     "model": "anthropic/claude-sonnet-4-5"
-    //   }
-    // ]
+    }
   },
 
-  // --- Bindings (Phase 2: route messages to agents) ---
-  // "bindings": [
-  //   { "agentId": "kevin", "match": { "channel": "discord", "peer": { "kind": "direct", "id": "KEVIN_DISCORD_USER_ID" } } },
-  //   { "agentId": "team-member-2", "match": { "channel": "discord", "peer": { "kind": "direct", "id": "MEMBER2_DISCORD_USER_ID" } } }
-  // ],
+  "channels": {},
 
-  // --- Channel Integrations ---
-  "channels": {
-    // Discord — primary team channel
-    // "discord": {
-    //   "groupPolicy": "allowlist",
-    //   "token": "${DISCORD_BOT_TOKEN}",
-    //   "guilds": {
-    //     "YOUR_GUILD_ID": {
-    //       "channels": {
-    //         "CHANNEL_ID": { "allow": true, "requireMention": true }
-    //       }
-    //     }
-    //   }
-    // }
-  },
-
-  // --- Tools ---
   "tools": {
     "exec": {
       "security": "full"
     }
   },
 
-  // --- Environment ---
+  "hooks": {
+    "internal": {
+      "enabled": true,
+      "entries": {
+        "boot-md": {
+          "enabled": true
+        },
+        "session-memory": {
+          "enabled": true
+        }
+      }
+    }
+  },
+
+  "commands": {
+    "native": "auto",
+    "restart": true
+  },
+
   "env": {
     "vars": {
       "TZ": "America/Denver"

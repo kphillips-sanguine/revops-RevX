@@ -34,11 +34,18 @@ RUN su -s /bin/sh node -c "sf plugins install sfdx-git-delta"
 # Playwright browsers for browser tool (Chromium only)
 RUN node /app/node_modules/playwright-core/cli.js install --with-deps chromium || true
 
-# Create persistent directories (will be mounted as volumes on Sevalla)
+# Create persistent directories
 RUN mkdir -p /home/node/.openclaw \
              /home/node/.openclaw/workspace \
+             /home/node/.openclaw/workspace/memory \
              /home/node/.openclaw/agents \
     && chown -R node:node /home/node/.openclaw
+
+# Bake in workspace files (agent identity, config, tools)
+COPY --chown=node:node workspace/ /home/node/.openclaw/workspace/
+
+# Bake in gateway config
+COPY --chown=node:node config/openclaw.json /home/node/.openclaw/openclaw.json
 
 # Performance: Node compile cache
 ENV NODE_COMPILE_CACHE=/var/tmp/openclaw-compile-cache
