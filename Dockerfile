@@ -25,7 +25,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN npm install -g @salesforce/cli@latest
 
 # sfdx-git-delta plugin (as SF CLI plugin)
-RUN su -s /bin/sh node -c "sf plugins install sfdx-git-delta"
+# Install as root, then fix ownership for node user
+RUN sf plugins install sfdx-git-delta \
+    && chown -R node:node /root/.local/share/sf || true
 
 # gog CLI (Google Workspace) — install globally
 # Uncomment when needed:
