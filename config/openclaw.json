@@ -44,7 +44,7 @@
         "mode": "safeguard"
       },
       "heartbeat": {
-        "every": "30m",
+        "every": "60m",
         "target": "last"
       },
       "maxConcurrent": 4,
@@ -54,7 +54,18 @@
     }
   },
 
-  "channels": {},
+  "channels": {
+    "slack": {
+      "enabled": true,
+      "mode": "socket",
+      "appToken": "${SLACK_APP_TOKEN}",
+      "botToken": "${SLACK_BOT_TOKEN}",
+      "dmPolicy": "open",
+      "allowFrom": ["*"],
+      "groupPolicy": "allowlist",
+      "channels": {}
+    }
+  },
 
   "tools": {
     "exec": {
