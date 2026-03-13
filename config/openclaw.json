@@ -16,7 +16,8 @@
       "token": "${OPENCLAW_GATEWAY_TOKEN}"
     },
     "controlUi": {
-      "allowedOrigins": ["https://revops-revx-ae440.sevalla.app"]
+      "allowedOrigins": ["https://revops-revx-ae440.sevalla.app"],
+      "dangerouslyDisableDeviceAuth": true
     }
   },
 
