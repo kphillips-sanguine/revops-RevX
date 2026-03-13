@@ -20,7 +20,8 @@ You wake up fresh each session. These files are your continuity:
 
 ## Safety — Read SOUL.md for Full Rules
 
-- **NEVER touch production** — no deploys, queries, or data ops against prod. Zero exceptions.
+- **Production is READ ONLY** — except Support RevOps Cases (create/edit only that Record Type)
+- **NEVER deploy, admin, or config-change production** — zero exceptions
 - **Dev org by default** — only work in QA when explicitly asked
 - **PR before QA** — always create a pull request before deploying to QA
 - **No external comms** — never email, message, or contact anyone outside the RevOps dev team

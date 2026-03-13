@@ -7,6 +7,14 @@ set -e
 
 echo "🔧 RevX startup: Authenticating SF orgs..."
 
+# Authenticate prod org (READ + Support RevOps Cases only)
+if [ -n "$SF_PROD_AUTH_URL" ]; then
+  echo "$SF_PROD_AUTH_URL" > /tmp/prod-auth.txt
+  sf org login sfdx-url --sfdx-url-file /tmp/prod-auth.txt --alias prod --no-prompt 2>/dev/null && \
+    echo "  ✅ Prod org authenticated (read + Support RevOps Cases only)" || echo "  ⚠️ Prod org auth failed"
+  rm -f /tmp/prod-auth.txt
+fi
+
 # Authenticate dev org
 if [ -n "$SF_DEV_AUTH_URL" ]; then
   echo "$SF_DEV_AUTH_URL" > /tmp/dev-auth.txt
