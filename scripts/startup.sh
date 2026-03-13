@@ -47,4 +47,4 @@ fi
 echo "🚀 RevX startup complete, launching gateway..."
 
 # Start OpenClaw gateway (exec replaces this process)
-exec node /app/openclaw.mjs gateway start --allow-unconfigured "$@"
+exec node /app/openclaw.mjs gateway --allow-unconfigured "$@"
