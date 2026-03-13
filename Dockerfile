@@ -50,6 +50,10 @@ COPY --chown=node:node workspace/ /home/node/.openclaw/workspace/
 # Bake in gateway config
 COPY --chown=node:node config/openclaw.json /home/node/.openclaw/openclaw.json
 
+# Startup script (SF auth + GitHub clone before gateway)
+COPY --chown=node:node scripts/startup.sh /home/node/startup.sh
+RUN chmod +x /home/node/startup.sh
+
 # Performance: Node compile cache
 ENV NODE_COMPILE_CACHE=/var/tmp/openclaw-compile-cache
 RUN mkdir -p /var/tmp/openclaw-compile-cache && chown node:node /var/tmp/openclaw-compile-cache
@@ -70,6 +74,5 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
 
 EXPOSE 8080
 
-# The base image CMD handles gateway startup
-# OPENCLAW_GATEWAY_PORT and OPENCLAW_GATEWAY_BIND env vars configure binding
-# --allow-unconfigured is the base image default
+# Custom entrypoint: authenticate SF orgs + clone repo, then start gateway
+ENTRYPOINT ["/home/node/startup.sh"]

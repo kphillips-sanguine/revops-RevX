@@ -81,6 +81,14 @@
     "restart": true
   },
 
+  "ui": {
+    "seamColor": "#F59E0B",
+    "assistant": {
+      "name": "RevX",
+      "avatar": "⚡"
+    }
+  },
+
   "env": {
     "vars": {
       "TZ": "America/Denver"
