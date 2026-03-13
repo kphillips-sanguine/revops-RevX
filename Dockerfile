@@ -50,6 +50,10 @@ COPY --chown=node:node workspace/ /home/node/.openclaw/workspace/
 # Bake in gateway config
 COPY --chown=node:node config/openclaw.json /home/node/.openclaw/openclaw.json
 
+# RevX branding overrides (title, favicon, accent color)
+COPY --chown=node:node branding/index.html /app/dist/control-ui/index.html
+COPY --chown=node:node branding/favicon.svg /app/dist/control-ui/favicon.svg
+
 # Startup script (SF auth + GitHub clone before gateway)
 COPY --chown=node:node scripts/startup.sh /home/node/startup.sh
 RUN chmod +x /home/node/startup.sh
