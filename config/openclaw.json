@@ -60,7 +60,9 @@
       "dmPolicy": "open",
       "allowFrom": ["*"],
       "groupPolicy": "allowlist",
-      "channels": {}
+      "channels": {
+        "C08NBP2EL6T": { "allow": true, "requireMention": true }
+      }
     }
   },
 
