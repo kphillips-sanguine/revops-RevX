@@ -54,16 +54,7 @@ COPY --chown=node:node config/openclaw.json /home/node/.openclaw/openclaw.json
 COPY --chown=node:node branding/index.html /app/dist/control-ui/index.html
 COPY --chown=node:node branding/favicon.svg /app/dist/control-ui/favicon.svg
 
-# Replace user-visible "OpenClaw" branding text in JS bundles with "RevX"
-# Only target quoted strings (display text), not JS identifiers/class names
-RUN find /app/dist/control-ui/assets -type f -name '*.js' \
-    -exec sed -i \
-      -e 's/"OpenClaw"/"RevX"/g' \
-      -e "s/'OpenClaw'/'RevX'/g" \
-      -e 's/`OpenClaw`/`RevX`/g' \
-      -e 's/"OpenClaw /"RevX /g' \
-      -e "s/'OpenClaw /'RevX /g" \
-    {} +
+
 
 # Startup script (SF auth + GitHub clone before gateway)
 COPY --chown=node:node scripts/startup.sh /home/node/startup.sh

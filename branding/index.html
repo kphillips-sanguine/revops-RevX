@@ -27,5 +27,38 @@
  </head>
  <body>
  <openclaw-app></openclaw-app>
+ <script>
+   // RevX branding: replace visible "OpenClaw" text in the DOM
+   (function() {
+     const REPLACE = [['OpenClaw', 'RevX'], ['openclaw', 'RevX']];
+     function walk(node) {
+       if (node.nodeType === 3) { // text node
+         let t = node.textContent;
+         for (const [from, to] of REPLACE) t = t.split(from).join(to);
+         if (t !== node.textContent) node.textContent = t;
+       } else if (node.nodeType === 1 && node.tagName !== 'SCRIPT' && node.tagName !== 'STYLE') {
+         // Also patch placeholder/title/aria-label attributes
+         for (const attr of ['placeholder', 'title', 'aria-label', 'alt']) {
+           if (node.hasAttribute(attr)) {
+             let v = node.getAttribute(attr);
+             for (const [from, to] of REPLACE) v = v.split(from).join(to);
+             node.setAttribute(attr, v);
+           }
+         }
+         node.childNodes.forEach(walk);
+       }
+     }
+     // Run on mutations (SPA renders dynamically)
+     new MutationObserver(function(mutations) {
+       mutations.forEach(function(m) {
+         m.addedNodes.forEach(walk);
+         if (m.type === 'characterData') walk(m.target);
+       });
+     }).observe(document.body, { childList: true, subtree: true, characterData: true });
+     // Initial pass after app renders
+     setTimeout(function() { walk(document.body); }, 500);
+     setTimeout(function() { walk(document.body); }, 2000);
+   })();
+ </script>
  </body>
 </html>
