@@ -50,10 +50,28 @@ COPY --chown=node:node workspace/ /home/node/.openclaw/workspace/
 # Bake in gateway config
 COPY --chown=node:node config/openclaw.json /home/node/.openclaw/openclaw.json
 
-# RevX branding overrides (title, favicon, accent color)
-COPY --chown=node:node branding/index.html /app/dist/control-ui/index.html
+# RevX branding overrides
 COPY --chown=node:node branding/favicon.svg /app/dist/control-ui/favicon.svg
 
+# Patch the ORIGINAL index.html in-place (preserves correct asset hashes)
+# 1. Replace page title
+RUN sed -i 's|<title>[^<]*</title>|<title>RevX</title>|' /app/dist/control-ui/index.html
+
+# 2. Inject branding CSS + DOM rename script before </head> and </body>
+RUN sed -i 's|</head>|<style>\
+  :root { --claw-accent: #F59E0B !important; --claw-accent-hover: #D97706 !important; --claw-primary: #F59E0B !important; }\
+  [style*="--claw"] { --claw-accent: #F59E0B !important; }\
+</style>\n</head>|' /app/dist/control-ui/index.html \
+    && sed -i 's|</body>|<script>\
+(function(){var R=[["OpenClaw","RevX"],["openclaw","RevX"]];function w(n){\
+if(n.nodeType===3){var t=n.textContent;R.forEach(function(p){t=t.split(p[0]).join(p[1])});\
+if(t!==n.textContent)n.textContent=t}else if(n.nodeType===1\&\&n.tagName!=="SCRIPT"\&\&n.tagName!=="STYLE"){\
+["placeholder","title","aria-label","alt"].forEach(function(a){if(n.hasAttribute(a)){var v=n.getAttribute(a);\
+R.forEach(function(p){v=v.split(p[0]).join(p[1])});n.setAttribute(a,v)}});n.childNodes.forEach(w)}}\
+new MutationObserver(function(ms){ms.forEach(function(m){m.addedNodes.forEach(w);\
+if(m.type==="characterData")w(m.target)})}).observe(document.body,{childList:true,subtree:true,characterData:true});\
+setTimeout(function(){w(document.body)},500);setTimeout(function(){w(document.body)},2000)})();\
+</script>\n</body>|' /app/dist/control-ui/index.html
 
 
 # Startup script (SF auth + GitHub clone before gateway)
