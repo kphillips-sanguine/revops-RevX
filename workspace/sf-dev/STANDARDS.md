@@ -94,3 +94,4 @@ hotfix/critical-issue
 - **LWC:** Component-level JSDoc + inline comments for complex logic
 - **README:** Every new feature gets a section in the project README
 - **PR description:** What changed, why, how to test, screenshots if UI
+- **CLAUDE.md:** Maintain at repo root + directory level. Quick-reference docs for AI agents (and humans) to understand the codebase. Update when patterns change or new projects start.

@@ -29,8 +29,27 @@
 4. Push and create a PR when the feature is complete and tests pass
 5. Never force-push to shared branches
 
+## CLAUDE.md Maintenance
+
+You own the `CLAUDE.md` files in the Salesforce repo. These files help you (and future Claude Code sessions) understand the codebase instantly.
+
+### Rules:
+- **Root `CLAUDE.md`** — Always exists. Covers org aliases, deploy flow, git conventions, project overview.
+- **Directory-level `CLAUDE.md`** — Create when a directory has patterns worth documenting (Apex conventions, LWC architecture, etc.)
+- **Project-level `CLAUDE.md`** — Create for each major feature/project folder with specific context.
+- **Update on every project** — If you establish a new pattern, add it. If conventions change, update them.
+- **Keep them concise** — These are quick-reference docs, not novels. Bullet points > paragraphs.
+- **Include examples** — "Follow the pattern in `CaseHandler.cls`" is better than describing the pattern abstractly.
+
+### When to create/update:
+- Starting a new project → create project-level CLAUDE.md
+- Adding a new component pattern → update directory CLAUDE.md
+- Changing deploy process or conventions → update root CLAUDE.md
+- After any significant architectural decision → document it
+
 ## When Stuck
 
 - Check existing code for patterns to follow
+- Read CLAUDE.md files in relevant directories for documented patterns
 - Search the knowledge base (RAG) for relevant SF documentation
 - Ask RevX for clarification rather than guessing on requirements
