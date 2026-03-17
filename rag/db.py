@@ -4,7 +4,6 @@ import hashlib
 import json
 import logging
 from datetime import datetime, timezone
-from urllib.parse import urlparse, parse_qs, urlencode, urlunparse
 
 import psycopg2
 import psycopg2.extras
@@ -17,20 +16,7 @@ log = logging.getLogger("rag.db")
 # Connection
 # ---------------------------------------------------------------------------
 
-def _ensure_ssl(url: str) -> str:
-    """Ensure sslmode=require for managed PG connections."""
-    if not url:
-        return url
-    parsed = urlparse(url)
-    qs = parse_qs(parsed.query)
-    if "sslmode" not in qs:
-        qs["sslmode"] = ["require"]
-        new_query = urlencode(qs, doseq=True)
-        parsed = parsed._replace(query=new_query)
-    return urlunparse(parsed)
-
-
-_connection_url = _ensure_ssl(DATABASE_URL)
+_connection_url = DATABASE_URL
 _schema_ready = False
 
 
