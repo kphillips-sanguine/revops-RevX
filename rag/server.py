@@ -196,6 +196,8 @@ def debug():
         "db_url_preview": db._connection_url[:30] + "..." if db._connection_url else None,
     }
 
+    info["working_url_resolved"] = db._working_url is not None
+
     # Test raw connection
     try:
         conn = db.get_conn()

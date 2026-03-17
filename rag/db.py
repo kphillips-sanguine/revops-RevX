@@ -18,13 +18,61 @@ log = logging.getLogger("rag.db")
 
 _connection_url = DATABASE_URL
 _schema_ready = False
+_working_url = None  # resolved after first successful connection
+
+
+def _try_connect(url: str):
+    """Attempt a connection, return the connection or raise."""
+    conn = psycopg2.connect(url, connect_timeout=10)
+    # Test the connection is actually alive
+    with conn.cursor() as cur:
+        cur.execute("SELECT 1")
+    return conn
+
+
+def _resolve_connection():
+    """Try the DATABASE_URL as-is, then with sslmode variants."""
+    global _working_url
+    if _working_url:
+        return _working_url
+
+    url = _connection_url
+    if not url:
+        raise RuntimeError("DATABASE_URL is not configured")
+
+    # If user already specified sslmode, use as-is
+    if "sslmode=" in url:
+        _working_url = url
+        return url
+
+    separator = "&" if "?" in url else "?"
+
+    # Try in order: as-is, sslmode=require, sslmode=disable
+    attempts = [
+        ("as-is", url),
+        ("sslmode=require", f"{url}{separator}sslmode=require"),
+        ("sslmode=disable", f"{url}{separator}sslmode=disable"),
+    ]
+
+    last_error = None
+    for label, attempt_url in attempts:
+        try:
+            conn = _try_connect(attempt_url)
+            conn.close()
+            _working_url = attempt_url
+            log.info(f"Database connection successful ({label})")
+            return attempt_url
+        except Exception as e:
+            last_error = e
+            log.warning(f"Connection attempt ({label}) failed: {e}")
+
+    raise RuntimeError(f"All connection attempts failed. Last error: {last_error}")
 
 
 def get_conn():
     """Get a new database connection."""
-    if not _connection_url:
-        raise RuntimeError("DATABASE_URL is not configured")
-    return psycopg2.connect(_connection_url)
+    url = _resolve_connection()
+    return psycopg2.connect(url, connect_timeout=10)
 
 
 # ---------------------------------------------------------------------------
