@@ -62,7 +62,23 @@
           "emoji": "⚡"
         },
         "subagents": {
-          "allowAgents": ["sf-dev"]
+          "allowAgents": ["sf-dev", "spec-ops"]
+        }
+      },
+      {
+        "id": "spec-ops",
+        "name": "Spec Ops",
+        "workspace": "/home/node/.openclaw/workspace/spec-ops",
+        "model": "anthropic/claude-sonnet-4-20250514",
+        "identity": {
+          "name": "Spec Ops",
+          "emoji": "🎯"
+        },
+        "heartbeat": {
+          "every": "0"
+        },
+        "subagents": {
+          "maxConcurrent": 2
         }
       },
       {
