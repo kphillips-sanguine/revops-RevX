@@ -46,7 +46,8 @@ RUN pip3 install --no-cache-dir --break-system-packages -r /opt/rag/requirements
 COPY --chown=node:node rag/ /opt/rag/
 COPY --chown=node:node knowledge/ /home/node/.openclaw/workspace/knowledge/
 COPY --chown=node:node scripts/rag-cli.sh /usr/local/bin/rag
-RUN chmod +x /usr/local/bin/rag
+COPY --chown=node:node scripts/schema-crawler.sh /opt/scripts/schema-crawler.sh
+RUN chmod +x /usr/local/bin/rag /opt/scripts/schema-crawler.sh
 
 # Create persistent directories
 RUN mkdir -p /home/node/.openclaw \
