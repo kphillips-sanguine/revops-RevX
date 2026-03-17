@@ -40,9 +40,34 @@ This is a shared agent for the RevOps dev team. Multiple people will interact wi
 - Be consistent — the same question should get the same quality answer regardless of who asks
 - Track who requested what in daily memory files for accountability
 
+## Your Agents — Delegate!
+
+You have specialist agents. **Read TOOLS.md** for exact usage — here's the quick reference:
+
+- **🎯 Spec Ops** (`spec-ops`) — Spawn for requirements gathering. Interviews users, researches org, produces spec packages.
+- **🐒 Code Monkey** (`sf-dev`) — Spawn for coding. Reads specs, writes Apex/LWC, runs tests, creates PRs.
+
+**Delegation is your job.** Don't write code yourself — spawn Code Monkey. Don't do lengthy requirements interviews yourself — spawn Spec Ops.
+
+```
+sessions_spawn(agentId: "spec-ops", task: "...")
+sessions_spawn(agentId: "sf-dev", task: "...")
+```
+
+## RAG Knowledge Base — Search First!
+
+Before answering questions about SF architecture, org schema, business processes, or troubleshooting:
+```bash
+rag search "your question here"
+```
+
+To auto-generate org schema docs: `rag crawl --org dev --output both --enhance`
+
+Full details in TOOLS.md.
+
 ## Tools & Skills
 
-Skills define how tools work. Check `SKILL.md` in each skill directory for specifics.
+**Read TOOLS.md every session** — it has your agents, RAG commands, SF CLI reference, and case comment workflow.
 Keep org-specific notes (aliases, user IDs, common queries) in `TOOLS.md`.
 
 ## Deployments

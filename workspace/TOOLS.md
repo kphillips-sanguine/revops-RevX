@@ -1,95 +1,189 @@
 # TOOLS.md - RevX Local Notes
 
+## Your Agents
+
+You have two specialist agents you can delegate to. **Use them.** Don't try to write code or gather detailed specs yourself — that's their job.
+
+### 🎯 Spec Ops — Requirements Agent
+**When to use:** Any time a new feature, project, or significant change needs to be specced out.
+
+```
+sessions_spawn(agentId: "spec-ops", task: "Gather requirements for [description]. Here's what we know so far: [context]")
+```
+
+**What it does:**
+- Interviews the user with targeted questions (in batches, not one at a time)
+- Researches the existing SF org and codebase before asking questions
+- Produces a complete spec package in `sf-dev/specs/{project-name}/`
+
+**Give it:** Any docs, prototypes, field lists, or requirements the user provided.
+**Get back:** Full spec package (requirements, data model, field mapping, UI specs, permissions, test plan).
+
+### 🐒 Code Monkey — SF Developer Agent
+**When to use:** When specs are ready and code needs to be written.
+
+```
+sessions_spawn(agentId: "sf-dev", task: "Build [feature] per specs in specs/[project-name]/. Deploy to dev org and create a PR.")
+```
+
+**What it does:**
+- Reads spec documents, plans implementation
+- Writes Apex, LWCs, metadata, test classes
+- Follows coding standards (trigger handler, service layer, 85%+ coverage)
+- Creates feature branches, commits, pushes, creates PRs
+- Updates `PROGRESS.md` with status
+
+**Give it:** The spec folder path and any additional context.
+**Get back:** Working code, passing tests, a PR ready for review.
+
+### The Typical Flow
+```
+User asks for something
+  → You understand the request
+  → Spawn Spec Ops with context → specs produced
+  → Spawn Code Monkey with spec path → code built, PR created
+  → You update the Case with a [RevX] comment
+  → You report back to the user
+```
+
+For quick/simple requests (field change, small fix), you can skip Spec Ops and go straight to Code Monkey with clear instructions.
+
+---
+
+## RAG Knowledge Base
+
+You have a searchable knowledge base. **Search it before answering questions** about SF architecture, business processes, org schema, or troubleshooting.
+
+### Search
+```bash
+rag search "what fields are on the Case object"
+rag search "how does the deploy pipeline work"
+rag search "experience cloud portal setup" --category salesforce
+rag search "team structure" --category business --top 3
+```
+
+### Schema Crawler — Generate Org Schema Docs
+```bash
+# Crawl dev org → writes files + pushes to RAG (raw data)
+rag crawl --org dev --output both
+
+# Crawl with AI enhancement (Gemini Flash enriches descriptions)
+rag crawl --org dev --output both --enhance
+
+# Crawl prod org
+rag crawl --org prod --output both --enhance
+
+# Crawl specific objects only
+rag crawl --org dev --objects "Case,Account,Contact" --enhance
+```
+
+**When to crawl:**
+- After a sandbox refresh (schema may have changed)
+- When someone asks about objects/fields and search comes up empty
+- Periodically (monthly) to keep schema docs current
+- When starting a new project (crawl relevant objects)
+
+### Add Knowledge at Runtime
+```bash
+# Add from text
+rag add --title "New Integration Pattern" --category "salesforce" --content "## Details..."
+
+# Add from a file
+rag add --title "Meeting Notes" --file /tmp/notes.md --category "business"
+```
+
+**When to add knowledge:**
+- After discovering something about the org (relationships, undocumented flows)
+- After resolving a tricky issue (future troubleshooting reference)
+- When a team member shares info worth preserving
+
+### Other RAG Commands
+```bash
+rag sync              # Sync changed knowledge files to DB
+rag sync --force      # Re-embed everything
+rag sources           # List all documents in the knowledge base
+rag stats             # Document/chunk counts by category
+rag health            # Check if RAG service is running
+rag debug             # Diagnose DB/pgvector issues
+```
+
+### What's in the Knowledge Base
+| Category | Content |
+|----------|---------|
+| `salesforce` | Architecture, Apex patterns, LWC patterns, governor limits, Experience Cloud, integrations, permissions, org schema |
+| `business` | Company overview, glossary, team structure |
+| `apps` | Case Gantt/Kanban, DevOps Tool |
+| `runbooks` | Deploy to prod, sandbox refresh, troubleshooting |
+
+---
+
 ## Salesforce CLI
 
 **Org aliases:**
-- `prod` — Production (DevHub)
-- `dev` — Dev sandbox
+- `prod` — Production (READ + Support RevOps Cases only)
+- `dev` — Dev sandbox (default target)
 - `qa` — QA sandbox
 - `b2cdev` — B2C Dev sandbox
 
-**Common queries:**
+**Common commands:**
 ```bash
-# List recent deployments
-sf project deploy report --target-org <alias>
+# Query data
+sf data query --query "SELECT Id, Name FROM Account LIMIT 5" --target-org dev
+
+# Kevin's open cases
+sf data query --query "SELECT Id, CaseNumber, Subject, Status, Priority, CreatedDate FROM Case WHERE OwnerId = '005PW00000JHAhdYAH' AND IsClosed = false ORDER BY CreatedDate DESC LIMIT 20" --target-org prod
+
+# Run tests
+sf apex run test --test-level RunLocalTests --target-org dev --result-format human
+
+# Deploy
+sf project deploy start --source-dir force-app --target-org dev
+
+# Retrieve
+sf project retrieve start --metadata ApexClass:ClassName --target-org dev
 
 # Check org limits
-sf limits api display --target-org <alias>
-
-# Run all tests
-sf apex run test --target-org <alias> --wait 10
-
-# Retrieve metadata
-sf project retrieve start --target-org <alias> -m "ApexClass:ClassName"
+sf limits api display --target-org dev
 
 # Delta deployment (sfdx-git-delta)
 sf sgd source delta --from <commit> --to HEAD --output .
 ```
 
-## sfdx-git-delta
+---
 
-Installed as SF CLI plugin. Use `sf sgd source delta` (not standalone `sgd`).
+## Salesforce Case Comments
 
-## RAG Knowledge Base
-
-RevX has a semantic search knowledge base powered by PostgreSQL + pgvector + Google embeddings.
-
-**CLI tool: `rag`**
-
+When posting updates to Cases:
 ```bash
-# Search the knowledge base (semantic / AI-powered)
-rag search "how does the pricing calculator work?"
-rag search "salesforce objects" --category salesforce --top 3
-
-# Sync markdown knowledge files from disk → database
-rag sync              # only changed files
-rag sync --force      # re-embed everything
-
-# Add runtime knowledge (persists in DB across container rebuilds)
-rag add --title "New Integration" --category "apps" --content "## Details\n..."
-rag add --title "Troubleshooting Guide" --file /tmp/guide.md --category "runbooks"
-
-# List all knowledge documents
-rag sources
-rag sources --category salesforce
-
-# Stats
-rag stats
-
-# Health check
-rag health
+# Post a [RevX] comment
+sf data create record --sobject CaseComment --values "ParentId='CASE_ID' CommentBody='[RevX] Status update: ...'" --target-org prod
 ```
 
-**When to use RAG search:**
-- Before answering questions about business processes, architecture, or Salesforce config
-- When you need context about how something works at Sanguine Bio
-- When a team member asks about something that might be documented
+**Rules:**
+- Always prefix with `[RevX]` so team knows it's from you
+- Keep concise — decisions, milestones, blockers
+- Don't spam — one comment per significant event
 
-**When to add knowledge:**
-- After discovering something important about an org (object relationships, flow logic, etc.)
-- After resolving a tricky issue (add a runbook entry)
-- When a team member shares institutional knowledge worth preserving
+---
 
-**Knowledge sources (baked into container):**
-- `knowledge/business/` — Company context, org structure, processes
-- `knowledge/salesforce/` — Objects, fields, flows, architecture
-- `knowledge/apps/` — LWCs, Apex classes, integrations
-- `knowledge/runbooks/` — Deployment procedures, troubleshooting
+## Project Tracking
 
-**API (advanced):**
-- RAG service runs at `http://127.0.0.1:8081`
-- Docs: `http://127.0.0.1:8081/rag/docs`
-- Search: `POST /rag/search {"query": "...", "top_k": 5, "category": "..."}`
-- Add: `POST /rag/documents {"title": "...", "content": "...", "category": "..."}`
+**PROJECTS.md** — Check this for active project status. Update it when projects change.
+
+**Key files:**
+- `PROJECTS.md` — Active projects with Case links
+- `TEAM-GUIDE.md` — Team onboarding doc (share with new team members)
+- `sf-dev/PROGRESS.md` — Code Monkey's task tracker
+- `sf-dev/specs/` — Spec packages from Spec Ops
+
+---
 
 ## Environment
 
 - Container OS: Debian Bookworm (Node 22)
-- SF CLI: latest (installed at build)
+- SF CLI: latest
 - Python 3: available for scripting
-- Git: available for delta operations
-- RAG service: FastAPI on port 8081 (internal only)
-
----
-
-*Add org-specific notes, user IDs, and common operations as you learn them.*
+- Git: available
+- RAG service: FastAPI on port 8081 (internal)
+- Persistent storage: `/var/lib/data/workspace`
+- Salesforce repo: `/home/node/.openclaw/workspace/salesforce/`
