@@ -50,7 +50,38 @@
       "subagents": {
         "maxConcurrent": 8
       }
-    }
+    },
+    "list": [
+      {
+        "id": "revx",
+        "name": "RevX",
+        "default": true,
+        "workspace": "/home/node/.openclaw/workspace",
+        "identity": {
+          "name": "RevX",
+          "emoji": "⚡"
+        },
+        "subagents": {
+          "allowAgents": ["sf-dev"]
+        }
+      },
+      {
+        "id": "sf-dev",
+        "name": "Code Monkey",
+        "workspace": "/home/node/.openclaw/workspace/sf-dev",
+        "model": "anthropic/claude-sonnet-4-20250514",
+        "identity": {
+          "name": "Code Monkey",
+          "emoji": "🐒"
+        },
+        "heartbeat": {
+          "every": "0"
+        },
+        "subagents": {
+          "maxConcurrent": 4
+        }
+      }
+    ]
   },
 
   "channels": {
