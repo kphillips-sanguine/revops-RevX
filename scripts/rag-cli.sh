@@ -7,10 +7,44 @@
 #   rag add --title "Title" --category "cat" --content "markdown content"
 #   rag sources [--category salesforce]
 #   rag stats
+#   rag debug
 
 RAG_URL="${RAG_URL:-http://127.0.0.1:8081}"
 CMD="${1:-help}"
 shift
+
+# Helper: make a request and handle errors
+_request() {
+  local METHOD="$1" URL="$2" BODY="$3"
+  local RESPONSE HTTP_CODE
+
+  if [ "$METHOD" = "GET" ]; then
+    RESPONSE=$(curl -sw "\n%{http_code}" -X GET "$URL" 2>/dev/null)
+  else
+    RESPONSE=$(curl -sw "\n%{http_code}" -X "$METHOD" "$URL" \
+      -H "Content-Type: application/json" \
+      -d "$BODY" 2>/dev/null)
+  fi
+
+  # Split response body and HTTP code
+  HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
+  BODY_CONTENT=$(echo "$RESPONSE" | sed '$d')
+
+  if [ -z "$BODY_CONTENT" ]; then
+    echo "ERROR: Empty response from RAG service (HTTP $HTTP_CODE)"
+    echo "Is the RAG service running? Try: curl -s $RAG_URL/rag/health"
+    return 1
+  fi
+
+  if [ "$HTTP_CODE" -ge 400 ] 2>/dev/null; then
+    echo "ERROR (HTTP $HTTP_CODE):"
+    echo "$BODY_CONTENT" | python3 -m json.tool 2>/dev/null || echo "$BODY_CONTENT"
+    return 1
+  fi
+
+  echo "$BODY_CONTENT"
+  return 0
+}
 
 case "$CMD" in
   search)
@@ -32,23 +66,22 @@ case "$CMD" in
     fi
     BODY="$BODY}"
 
-    RESPONSE=$(curl -s -X POST "$RAG_URL/rag/search" \
-      -H "Content-Type: application/json" \
-      -d "$BODY")
+    RESPONSE=$(_request POST "$RAG_URL/rag/search" "$BODY") || exit 1
 
     # Pretty-print results
-    COUNT=$(echo "$RESPONSE" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('count',0))" 2>/dev/null)
-    
-    if [ "$COUNT" = "0" ] || [ -z "$COUNT" ]; then
-      echo "No results found for: $QUERY"
-      exit 0
-    fi
-
-    echo "=== RAG Search: \"$QUERY\" — $COUNT results ==="
-    echo ""
     echo "$RESPONSE" | python3 -c "
 import sys, json
-data = json.load(sys.stdin)
+try:
+    data = json.load(sys.stdin)
+except json.JSONDecodeError as e:
+    print(f'JSON parse error: {e}')
+    sys.exit(1)
+count = data.get('count', 0)
+if count == 0:
+    print('No results found.')
+    sys.exit(0)
+print(f'=== RAG Search: \"{data.get(\"query\", \"\")}\" — {count} results ===')
+print()
 for i, r in enumerate(data.get('results', []), 1):
     sim = r.get('similarity', 0)
     print(f'--- [{i}] {r[\"document_title\"]} > {r[\"section_title\"]} (score: {sim:.3f}) ---')
@@ -63,9 +96,8 @@ for i, r in enumerate(data.get('results', []), 1):
     if [ "$1" = "--force" ]; then
       FORCE="true"
     fi
-    curl -s -X POST "$RAG_URL/rag/sync" \
-      -H "Content-Type: application/json" \
-      -d "{\"force\": $FORCE}" | python3 -m json.tool
+    RESPONSE=$(_request POST "$RAG_URL/rag/sync" "{\"force\": $FORCE}") || exit 1
+    echo "$RESPONSE" | python3 -m json.tool 2>/dev/null || echo "$RESPONSE"
     ;;
 
   add)
@@ -88,12 +120,19 @@ for i, r in enumerate(data.get('results', []), 1):
 
     # Use python to safely JSON-encode the content
     python3 -c "
-import json, sys, subprocess
-body = json.dumps({'title': '''$TITLE''', 'content': sys.stdin.read(), 'category': '''$CATEGORY'''})
-import urllib.request
-req = urllib.request.Request('$RAG_URL/rag/documents', data=body.encode(), headers={'Content-Type': 'application/json'}, method='POST')
-resp = urllib.request.urlopen(req)
-print(json.dumps(json.loads(resp.read()), indent=2))
+import json, sys, urllib.request
+content = sys.stdin.read()
+body = json.dumps({'title': '$TITLE', 'content': content, 'category': '$CATEGORY'})
+try:
+    req = urllib.request.Request('$RAG_URL/rag/documents', data=body.encode(), headers={'Content-Type': 'application/json'}, method='POST')
+    resp = urllib.request.urlopen(req)
+    print(json.dumps(json.loads(resp.read()), indent=2))
+except urllib.error.HTTPError as e:
+    print(f'ERROR (HTTP {e.code}): {e.read().decode()}')
+    sys.exit(1)
+except Exception as e:
+    print(f'ERROR: {e}')
+    sys.exit(1)
 " <<< "$CONTENT"
     ;;
 
@@ -102,9 +141,14 @@ print(json.dumps(json.loads(resp.read()), indent=2))
     if [ "$1" = "--category" ] || [ "$1" = "-c" ]; then
       CATEGORY="?category=$2"
     fi
-    curl -s "$RAG_URL/rag/documents$CATEGORY" | python3 -c "
+    RESPONSE=$(_request GET "$RAG_URL/rag/documents$CATEGORY") || exit 1
+    echo "$RESPONSE" | python3 -c "
 import sys, json
-data = json.load(sys.stdin)
+try:
+    data = json.load(sys.stdin)
+except json.JSONDecodeError as e:
+    print(f'JSON parse error: {e}')
+    sys.exit(1)
 docs = data.get('documents', [])
 print(f'Knowledge Base: {len(docs)} documents')
 print()
@@ -118,9 +162,14 @@ for d in docs:
     ;;
 
   stats)
-    curl -s "$RAG_URL/rag/stats" | python3 -c "
+    RESPONSE=$(_request GET "$RAG_URL/rag/stats") || exit 1
+    echo "$RESPONSE" | python3 -c "
 import sys, json
-data = json.load(sys.stdin)
+try:
+    data = json.load(sys.stdin)
+except json.JSONDecodeError as e:
+    print(f'JSON parse error: {e}')
+    sys.exit(1)
 print(f'Documents: {data[\"documents\"]}')
 print(f'Chunks:    {data[\"chunks\"]}')
 print('Categories:')
@@ -130,7 +179,14 @@ for c in data.get('categories', []):
     ;;
 
   health)
-    curl -s "$RAG_URL/rag/health" | python3 -m json.tool
+    RESPONSE=$(_request GET "$RAG_URL/rag/health") || exit 1
+    echo "$RESPONSE" | python3 -m json.tool 2>/dev/null || echo "$RESPONSE"
+    ;;
+
+  debug)
+    echo "Running RAG diagnostics..."
+    RESPONSE=$(_request GET "$RAG_URL/rag/debug") || exit 1
+    echo "$RESPONSE" | python3 -m json.tool 2>/dev/null || echo "$RESPONSE"
     ;;
 
   *)
@@ -146,5 +202,6 @@ for c in data.get('categories', []):
     echo "  sources [-c category]                      List all documents"
     echo "  stats                                      Knowledge base stats"
     echo "  health                                     Check RAG service health"
+    echo "  debug                                      Diagnose DB connection + pgvector"
     ;;
 esac

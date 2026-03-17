@@ -4,6 +4,7 @@ import hashlib
 import json
 import logging
 from datetime import datetime, timezone
+from urllib.parse import urlparse, parse_qs, urlencode, urlunparse
 
 import psycopg2
 import psycopg2.extras
@@ -16,9 +17,28 @@ log = logging.getLogger("rag.db")
 # Connection
 # ---------------------------------------------------------------------------
 
+def _ensure_ssl(url: str) -> str:
+    """Ensure sslmode=require for managed PG connections."""
+    if not url:
+        return url
+    parsed = urlparse(url)
+    qs = parse_qs(parsed.query)
+    if "sslmode" not in qs:
+        qs["sslmode"] = ["require"]
+        new_query = urlencode(qs, doseq=True)
+        parsed = parsed._replace(query=new_query)
+    return urlunparse(parsed)
+
+
+_connection_url = _ensure_ssl(DATABASE_URL)
+_schema_ready = False
+
+
 def get_conn():
     """Get a new database connection."""
-    return psycopg2.connect(DATABASE_URL)
+    if not _connection_url:
+        raise RuntimeError("DATABASE_URL is not configured")
+    return psycopg2.connect(_connection_url)
 
 
 # ---------------------------------------------------------------------------
@@ -31,7 +51,7 @@ CREATE EXTENSION IF NOT EXISTS vector;
 CREATE TABLE IF NOT EXISTS rag_documents (
     id              SERIAL PRIMARY KEY,
     source_path     TEXT NOT NULL,
-    source_type     TEXT NOT NULL DEFAULT 'file',   -- 'file' or 'dynamic'
+    source_type     TEXT NOT NULL DEFAULT 'file',
     title           TEXT,
     category        TEXT,
     content_hash    TEXT,
@@ -52,8 +72,6 @@ CREATE TABLE IF NOT EXISTS rag_chunks (
     created_at      TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Index for fast vector similarity search (cosine distance)
--- HNSW is better for small-to-medium datasets; switch to IVFFlat if >100k chunks
 CREATE INDEX IF NOT EXISTS idx_rag_chunks_embedding
     ON rag_chunks USING hnsw (embedding vector_cosine_ops)
     WITH (m = 16, ef_construction = 64);
@@ -68,14 +86,41 @@ CREATE INDEX IF NOT EXISTS idx_rag_documents_category
 
 def init_schema():
     """Create tables and extensions if they don't exist."""
+    global _schema_ready
     conn = get_conn()
     try:
         with conn.cursor() as cur:
             cur.execute(SCHEMA_SQL)
         conn.commit()
-        log.info("RAG schema initialized")
+        _schema_ready = True
+        log.info("RAG schema initialized successfully")
+    except Exception as e:
+        log.error(f"Schema init failed: {e}")
+        # Try without the HNSW index (pgvector might be an older version)
+        try:
+            fallback_sql = SCHEMA_SQL.replace(
+                f"CREATE INDEX IF NOT EXISTS idx_rag_chunks_embedding\n"
+                f"    ON rag_chunks USING hnsw (embedding vector_cosine_ops)\n"
+                f"    WITH (m = 16, ef_construction = 64);",
+                "-- HNSW index skipped (not supported on this pgvector version)"
+            )
+            conn2 = get_conn()
+            with conn2.cursor() as cur:
+                cur.execute(fallback_sql)
+            conn2.commit()
+            conn2.close()
+            _schema_ready = True
+            log.warning("Schema initialized WITHOUT HNSW index (pgvector may be older)")
+        except Exception as e2:
+            log.error(f"Fallback schema init also failed: {e2}")
+            raise e2
     finally:
         conn.close()
+
+
+def is_ready() -> bool:
+    """Check if the schema has been initialized."""
+    return _schema_ready
 
 
 # ---------------------------------------------------------------------------
@@ -149,10 +194,7 @@ def delete_chunks_for_document(doc_id: int):
 
 
 def insert_chunks(doc_id: int, chunks: list[dict]):
-    """Bulk insert chunks with embeddings.
-    
-    Each chunk dict: {content, section_title, embedding, metadata}
-    """
+    """Bulk insert chunks with embeddings."""
     conn = get_conn()
     try:
         with conn.cursor() as cur:
