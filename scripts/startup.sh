@@ -1,9 +1,44 @@
 #!/bin/bash
 # RevX Startup Script
 # Runs before OpenClaw gateway starts
-# Authenticates SF CLI orgs and clones GitHub repo
+# Sets up persistent storage, authenticates SF CLI orgs, and clones GitHub repo
 
 set -e
+
+# ─── Persistent Storage ─────────────────────────────────────────────────────
+# Workspace files live on persistent disk at /var/lib/data/workspace so they
+# survive container redeploys. On first run, baked-in files are copied over.
+# On subsequent runs, only NEW files from the image are added (no overwrites).
+# ─────────────────────────────────────────────────────────────────────────────
+
+PERSISTENT_WORKSPACE="/var/lib/data/workspace"
+BAKED_WORKSPACE="/home/node/.openclaw/workspace"
+
+echo "🔧 RevX startup: Setting up persistent storage..."
+
+if [ -d "/var/lib/data" ]; then
+  if [ ! -d "$PERSISTENT_WORKSPACE" ]; then
+    # First run: copy baked-in workspace to persistent storage
+    echo "  📦 First run — copying workspace to persistent storage..."
+    cp -a "$BAKED_WORKSPACE" "$PERSISTENT_WORKSPACE"
+    echo "  ✅ Workspace initialized on persistent storage"
+  else
+    # Subsequent run: merge new files only (don't overwrite existing)
+    echo "  📦 Persistent workspace exists — merging new files..."
+    cp -rn "$BAKED_WORKSPACE"/. "$PERSISTENT_WORKSPACE"/ 2>/dev/null || true
+    echo "  ✅ New files merged (existing files preserved)"
+  fi
+
+  # Ensure memory directory exists
+  mkdir -p "$PERSISTENT_WORKSPACE/memory"
+
+  # Replace workspace with symlink to persistent storage
+  rm -rf "$BAKED_WORKSPACE"
+  ln -s "$PERSISTENT_WORKSPACE" "$BAKED_WORKSPACE"
+  echo "  🔗 Workspace symlinked: $BAKED_WORKSPACE → $PERSISTENT_WORKSPACE"
+else
+  echo "  ⚠️ /var/lib/data not mounted — using ephemeral workspace"
+fi
 
 echo "🔧 RevX startup: Authenticating SF orgs..."
 
