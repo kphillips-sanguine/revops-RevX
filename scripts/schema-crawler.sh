@@ -21,9 +21,11 @@ set -euo pipefail
 ORG="dev"
 OUTPUT="both"
 OBJECTS="custom"
+ENHANCE="false"
 KNOWLEDGE_DIR="/home/node/.openclaw/workspace/knowledge/salesforce"
 RAG_URL="http://127.0.0.1:${RAG_PORT:-8081}"
 INCLUDE_STANDARD="Account,Contact,Case,Opportunity,Lead,Campaign,Task,Event,User"
+ENHANCE_SCRIPT="/opt/rag/enhance.py"
 
 # Parse arguments
 while [[ $# -gt 0 ]]; do
@@ -32,12 +34,17 @@ while [[ $# -gt 0 ]]; do
     --output) OUTPUT="$2"; shift 2 ;;
     --objects) OBJECTS="$2"; shift 2 ;;
     --knowledge-dir) KNOWLEDGE_DIR="$2"; shift 2 ;;
-    --help) echo "Usage: schema-crawler.sh [--org dev] [--output file|rag|both] [--objects all|custom|\"Obj1,Obj2\"]"; exit 0 ;;
+    --enhance) ENHANCE="true"; shift ;;
+    --help) echo "Usage: schema-crawler.sh [--org dev] [--output file|rag|both] [--objects all|custom|\"Obj1,Obj2\"] [--enhance]"; exit 0 ;;
     *) echo "Unknown option: $1"; exit 1 ;;
   esac
 done
 
-echo "🔍 Schema Crawler — Org: $ORG | Output: $OUTPUT | Objects: $OBJECTS"
+ENHANCE_LABEL=""
+if [[ "$ENHANCE" == "true" ]]; then
+  ENHANCE_LABEL=" | LLM: Gemini Flash"
+fi
+echo "🔍 Schema Crawler — Org: $ORG | Output: $OUTPUT | Objects: $OBJECTS$ENHANCE_LABEL"
 echo "=================================================="
 
 mkdir -p "$KNOWLEDGE_DIR/schema"
@@ -127,6 +134,15 @@ for obj in "${STD_OBJS[@]}"; do
   INVENTORY+="- **$obj**\n"
 done
 
+if [[ "$ENHANCE" == "true" ]]; then
+  echo -e "$INVENTORY" > /tmp/raw-inventory.md
+  python3 "$ENHANCE_SCRIPT" --type inventory --org "$ORG" --input /tmp/raw-inventory.md --output /tmp/enhanced-inventory.md 2>&1
+  if [[ -f /tmp/enhanced-inventory.md ]]; then
+    INVENTORY=$(cat /tmp/enhanced-inventory.md)
+    rm -f /tmp/raw-inventory.md /tmp/enhanced-inventory.md
+  fi
+fi
+
 write_output "object-inventory.md" "Salesforce Object Inventory ($ORG)" "salesforce" "$(echo -e "$INVENTORY")"
 
 # ---------------------------------------------------------------------------
@@ -211,6 +227,16 @@ for OBJ_API in "${ALL_OBJECTS[@]}"; do
   # Slugify object name for filename
   FILENAME="schema-$(echo "$OBJ_API" | tr '[:upper:]' '[:lower:]' | sed 's/__c$//' | sed 's/_/-/g').md"
 
+  # LLM Enhancement
+  if [[ "$ENHANCE" == "true" ]]; then
+    echo -e "$DOC" > /tmp/raw-schema.md
+    python3 "$ENHANCE_SCRIPT" --type object --name "$OBJ_API" --org "$ORG" --input /tmp/raw-schema.md --output /tmp/enhanced-schema.md 2>&1
+    if [[ -f /tmp/enhanced-schema.md ]]; then
+      DOC=$(cat /tmp/enhanced-schema.md)
+      rm -f /tmp/raw-schema.md /tmp/enhanced-schema.md
+    fi
+  fi
+
   write_output "$FILENAME" "$OBJ_LABEL Schema ($OBJ_API)" "salesforce" "$(echo -e "$DOC")"
 done
 
@@ -234,6 +260,15 @@ if [[ "$PS_DATA" != "[]" && -n "$PS_DATA" ]]; then
   fi
 else
   PERMS+="*(No custom permission sets found)*\n"
+fi
+
+if [[ "$ENHANCE" == "true" ]]; then
+  echo -e "$PERMS" > /tmp/raw-perms.md
+  python3 "$ENHANCE_SCRIPT" --type permissions --org "$ORG" --input /tmp/raw-perms.md --output /tmp/enhanced-perms.md 2>&1
+  if [[ -f /tmp/enhanced-perms.md ]]; then
+    PERMS=$(cat /tmp/enhanced-perms.md)
+    rm -f /tmp/raw-perms.md /tmp/enhanced-perms.md
+  fi
 fi
 
 write_output "permission-sets.md" "Permission Sets ($ORG)" "salesforce" "$(echo -e "$PERMS")"

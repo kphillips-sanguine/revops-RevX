@@ -202,7 +202,7 @@ for c in data.get('categories', []):
     echo "Commands:"
     echo "  search <query> [-k top_k] [-c category]   Semantic search"
     echo "  sync [--force]                             Sync markdown files to DB"
-    echo "  crawl [--org dev] [--output both]          Crawl SF org schema → RAG"
+    echo "  crawl [--org dev] [--output both] [--enhance]  Crawl SF org schema → RAG"
     echo "  add --title T --content C [-c category]    Add dynamic knowledge"
     echo "  add --title T --file F [-c category]       Add from file"
     echo "  sources [-c category]                      List all documents"
