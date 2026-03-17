@@ -1,7 +1,11 @@
 #!/bin/bash
 # RevX Startup Script
 # Runs before OpenClaw gateway starts
-# Sets up persistent storage, authenticates SF CLI orgs, and clones GitHub repo
+# 1. Sets up persistent storage
+# 2. Authenticates SF CLI orgs
+# 3. Clones GitHub repo
+# 4. Starts RAG service + syncs knowledge base
+# 5. Launches OpenClaw gateway
 
 set -e
 
@@ -87,7 +91,53 @@ else
   echo "  ⚠️ GITHUB_PAT not set, skipping repo clone"
 fi
 
+# ---------------------------------------------------------------------------
+# RAG Service — Knowledge Base
+# ---------------------------------------------------------------------------
+echo "🧠 RevX startup: Starting RAG service..."
+
+if [ -n "$DATABASE_URL" ] && [ -n "$GOOGLE_API_KEY" ]; then
+  # Start RAG service in background on port 8081
+  # PYTHONPATH ensures 'from rag.xxx import ...' works
+  export PYTHONPATH="/opt:$PYTHONPATH"
+  cd /opt
+  python3 -m uvicorn rag.server:app \
+    --host 127.0.0.1 \
+    --port "${RAG_PORT:-8081}" \
+    --log-level warning \
+    &
+  RAG_PID=$!
+  echo "  ✅ RAG service started (PID: $RAG_PID, port: ${RAG_PORT:-8081})"
+
+  # Wait for RAG service to be ready (up to 15s)
+  echo "  ⏳ Waiting for RAG service..."
+  for i in $(seq 1 30); do
+    if curl -s http://127.0.0.1:${RAG_PORT:-8081}/rag/health > /dev/null 2>&1; then
+      echo "  ✅ RAG service ready"
+      break
+    fi
+    sleep 0.5
+  done
+
+  # Run initial knowledge sync
+  echo "  📚 Syncing knowledge base..."
+  SYNC_RESULT=$(curl -s -X POST http://127.0.0.1:${RAG_PORT:-8081}/rag/sync \
+    -H "Content-Type: application/json" \
+    -d '{"force": false}' 2>/dev/null || echo '{"error": "sync failed"}')
+  echo "  📚 Sync result: $SYNC_RESULT"
+else
+  echo "  ⚠️ RAG service not started (requires DATABASE_URL and GOOGLE_API_KEY)"
+  if [ -z "$DATABASE_URL" ]; then
+    echo "     Missing: DATABASE_URL"
+  fi
+  if [ -z "$GOOGLE_API_KEY" ]; then
+    echo "     Missing: GOOGLE_API_KEY"
+  fi
+fi
+
 echo "🚀 RevX startup complete, launching gateway..."
 
 # Start OpenClaw gateway (exec replaces this process)
+# Note: using exec means the RAG background process becomes an orphan adopted by PID 1
+# This is fine in a container context — both processes run until the container stops
 exec node /app/openclaw.mjs gateway --allow-unconfigured "$@"

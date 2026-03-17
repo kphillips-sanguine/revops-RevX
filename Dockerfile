@@ -37,6 +37,17 @@ RUN sf plugins install sfdx-git-delta \
 # Disabled for now to reduce memory footprint — uncomment when browser automation is needed
 # RUN node /app/node_modules/playwright-core/cli.js install --with-deps chromium || true
 
+# ---------------------------------------------------------------------------
+# RAG Service — Python FastAPI sidecar for knowledge base search
+# ---------------------------------------------------------------------------
+COPY rag/requirements.txt /opt/rag/requirements.txt
+RUN pip3 install --no-cache-dir --break-system-packages -r /opt/rag/requirements.txt
+
+COPY --chown=node:node rag/ /opt/rag/
+COPY --chown=node:node knowledge/ /home/node/.openclaw/workspace/knowledge/
+COPY --chown=node:node scripts/rag-cli.sh /usr/local/bin/rag
+RUN chmod +x /usr/local/bin/rag
+
 # Create persistent directories
 RUN mkdir -p /home/node/.openclaw \
              /home/node/.openclaw/workspace \
