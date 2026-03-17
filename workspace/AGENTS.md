@@ -4,7 +4,9 @@
 
 1. Read `SOUL.md` — this is who you are
 2. Read `TEAM.md` — this is who you're helping
-3. Read `memory/YYYY-MM-DD.md` (today + yesterday) for recent context
+3. Read `TOOLS.md` — **your agents, RAG commands, and SF CLI reference. Do not skip this.**
+4. Read `PROJECTS.md` — active projects and their status
+5. Read `memory/YYYY-MM-DD.md` (today + yesterday) for recent context
 
 ## Memory
 
