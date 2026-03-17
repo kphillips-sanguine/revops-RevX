@@ -7,8 +7,8 @@ DATABASE_URL = os.environ.get("DATABASE_URL", "")
 
 # Google Embeddings
 GOOGLE_API_KEY = os.environ.get("GOOGLE_API_KEY", "")
-EMBEDDING_MODEL = "text-embedding-004"
-EMBEDDING_DIMS = 768
+EMBEDDING_MODEL = os.environ.get("EMBEDDING_MODEL", "gemini-embedding-001")
+EMBEDDING_DIMS = int(os.environ.get("EMBEDDING_DIMS", "3072"))
 
 # Server
 RAG_PORT = int(os.environ.get("RAG_PORT", "8081"))

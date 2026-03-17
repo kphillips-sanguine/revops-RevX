@@ -118,11 +118,44 @@ CREATE INDEX IF NOT EXISTS idx_rag_documents_category
 """
 
 
+def _check_embedding_dims(conn):
+    """Check if existing embedding column matches configured dims. Migrate if needed."""
+    try:
+        with conn.cursor() as cur:
+            # Check if rag_chunks table exists
+            cur.execute("""
+                SELECT column_name FROM information_schema.columns
+                WHERE table_name = 'rag_chunks' AND column_name = 'embedding'
+            """)
+            if not cur.fetchone():
+                return  # Table doesn't exist yet, schema init will create it
+
+            # Check current vector dimensions
+            cur.execute("""
+                SELECT atttypmod FROM pg_attribute
+                WHERE attrelid = 'rag_chunks'::regclass AND attname = 'embedding'
+            """)
+            row = cur.fetchone()
+            if row and row[0] > 0 and row[0] != EMBEDDING_DIMS:
+                old_dims = row[0]
+                log.warning(f"Embedding dimensions changed ({old_dims} → {EMBEDDING_DIMS}). Migrating...")
+                # Drop chunks and index, recreate with new dimensions
+                cur.execute("DROP INDEX IF EXISTS idx_rag_chunks_embedding")
+                cur.execute("DROP TABLE IF EXISTS rag_chunks CASCADE")
+                # Also clear document hashes so they get re-embedded on next sync
+                cur.execute("UPDATE rag_documents SET content_hash = NULL")
+                conn.commit()
+                log.info(f"Migration complete. Chunks cleared — run 'rag sync --force' to re-embed.")
+    except Exception as e:
+        log.warning(f"Embedding dims check failed (non-fatal): {e}")
+
+
 def init_schema():
     """Create tables and extensions if they don't exist."""
     global _schema_ready
     conn = get_conn()
     try:
+        _check_embedding_dims(conn)
         with conn.cursor() as cur:
             cur.execute(SCHEMA_SQL)
         conn.commit()
