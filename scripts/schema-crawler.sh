@@ -186,8 +186,8 @@ for OBJ_API in "${ALL_OBJECTS[@]}"; do
   RECORD_TYPES=$(sf_query "SELECT DeveloperName, Name, Description, IsActive FROM RecordType WHERE SObjectType = '$OBJ_API' ORDER BY Name" 2>/dev/null || echo "[]")
 
   if [[ "$RECORD_TYPES" != "[]" && -n "$RECORD_TYPES" ]]; then
-    RT_COUNT=$(echo "$RECORD_TYPES" | jq 'length' 2>/dev/null || echo "0")
-    if [[ "$RT_COUNT" -gt 0 ]]; then
+    RT_COUNT=$(echo "$RECORD_TYPES" | jq 'length' 2>/dev/null | tr -d '[:space:]' || echo "0")
+    if [[ "$RT_COUNT" =~ ^[0-9]+$ ]] && [[ "$RT_COUNT" -gt 0 ]]; then
       DOC+="| Developer Name | Label | Active | Description |\n"
       DOC+="|---------------|-------|--------|-------------|\n"
       echo "$RECORD_TYPES" | jq -r '.[] | "| \(.DeveloperName // "-") | \(.Name // "-") | \(.IsActive // "-") | \(.Description // "-") |"' 2>/dev/null >> /tmp/rt_tmp.md || true
@@ -207,8 +207,8 @@ for OBJ_API in "${ALL_OBJECTS[@]}"; do
     DOC+="\n## Validation Rules\n\n"
     VR=$(sf_query "SELECT ValidationName, Active, Description, ErrorMessage FROM ValidationRule WHERE EntityDefinition.QualifiedApiName = '$OBJ_API'" 2>/dev/null || echo "[]")
     if [[ "$VR" != "[]" && -n "$VR" ]]; then
-      VR_COUNT=$(echo "$VR" | jq 'length' 2>/dev/null || echo "0")
-      if [[ "$VR_COUNT" -gt 0 ]]; then
+      VR_COUNT=$(echo "$VR" | jq 'length' 2>/dev/null | tr -d '[:space:]' || echo "0")
+      if [[ "$VR_COUNT" =~ ^[0-9]+$ ]] && [[ "$VR_COUNT" -gt 0 ]]; then
         DOC+="| Name | Active | Description | Error Message |\n"
         DOC+="|------|--------|-------------|---------------|\n"
         echo "$VR" | jq -r '.[] | "| \(.ValidationName // "-") | \(.Active // "-") | \(.Description // "-") | \(.ErrorMessage // "-") |"' 2>/dev/null >> /tmp/vr_tmp.md || true

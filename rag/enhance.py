@@ -14,7 +14,7 @@ import urllib.error
 log = logging.getLogger("rag.enhance")
 
 GOOGLE_API_KEY = os.environ.get("GOOGLE_API_KEY", "")
-MODEL = os.environ.get("ENHANCE_MODEL", "gemini-2.0-flash")
+MODEL = os.environ.get("ENHANCE_MODEL", "gemini-2.5-flash")
 API_URL = f"https://generativelanguage.googleapis.com/v1beta/models/{MODEL}:generateContent"
 
 
