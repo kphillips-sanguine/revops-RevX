@@ -29,6 +29,14 @@ RUN npm install -g @salesforce/cli@latest
 RUN sf plugins install sfdx-git-delta \
     && chown -R node:node /root/.local/share/sf || true
 
+# GitHub CLI (gh) — for issues, PRs, API operations across multiple repos
+RUN curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg \
+      | dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg \
+    && echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" \
+      | tee /etc/apt/sources.list.d/github-cli.list > /dev/null \
+    && apt-get update && apt-get install -y --no-install-recommends gh \
+    && rm -rf /var/lib/apt/lists/*
+
 # gog CLI (Google Workspace) — install globally
 # Uncomment when needed:
 # RUN npm install -g @nicholasgasior/gog

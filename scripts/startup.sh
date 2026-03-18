@@ -73,6 +73,27 @@ fi
 # Set dev as default org
 sf config set target-org dev 2>/dev/null || true
 
+echo "🔧 RevX startup: Setting up GitHub access..."
+
+# Authenticate gh CLI + git credential helper for multi-repo access
+if [ -n "$GITHUB_PAT" ]; then
+  # Authenticate gh CLI
+  echo "$GITHUB_PAT" | gh auth login --with-token 2>/dev/null && \
+    echo "  ✅ gh CLI authenticated" || echo "  ⚠️ gh CLI auth failed"
+
+  # Set up git credential helper so any repo works without embedding token in URL
+  git config --global credential.helper store
+  echo "https://x-access-token:${GITHUB_PAT}@github.com" > ~/.git-credentials
+  chmod 600 ~/.git-credentials
+  echo "  ✅ Git credential helper configured (multi-repo)"
+
+  # Set git identity
+  git config --global user.name "RevX"
+  git config --global user.email "revx@sanguinebio.com"
+else
+  echo "  ⚠️ GITHUB_PAT not set, skipping GitHub setup"
+fi
+
 echo "🔧 RevX startup: Cloning GitHub repo..."
 
 # Clone or pull the Salesforce repo
@@ -84,7 +105,7 @@ if [ -n "$GITHUB_PAT" ]; then
       echo "  ✅ Repo updated" || echo "  ⚠️ Git pull failed"
   else
     echo "  📦 Cloning repo..."
-    git clone "https://${GITHUB_PAT}@github.com/sanguinebio/salesforce.git" "$REPO_DIR" 2>/dev/null && \
+    git clone "https://github.com/sanguinebio/salesforce.git" "$REPO_DIR" 2>/dev/null && \
       echo "  ✅ Repo cloned" || echo "  ⚠️ Git clone failed"
   fi
 else
