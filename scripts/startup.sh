@@ -77,9 +77,13 @@ echo "🔧 RevX startup: Setting up GitHub access..."
 
 # Authenticate gh CLI + git credential helper for multi-repo access
 if [ -n "$GITHUB_PAT" ]; then
-  # Authenticate gh CLI
-  echo "$GITHUB_PAT" | gh auth login --with-token 2>/dev/null && \
-    echo "  ✅ gh CLI authenticated" || echo "  ⚠️ gh CLI auth failed"
+  # Export GH_TOKEN so gh CLI picks it up automatically (most reliable method)
+  export GH_TOKEN="$GITHUB_PAT"
+  echo "  ✅ GH_TOKEN exported for gh CLI"
+
+  # Also do explicit auth login as backup
+  echo "$GITHUB_PAT" | gh auth login --with-token 2>&1 && \
+    echo "  ✅ gh auth login succeeded" || echo "  ⚠️ gh auth login failed (GH_TOKEN still works)"
 
   # Set up git credential helper so any repo works without embedding token in URL
   git config --global credential.helper store
