@@ -41,9 +41,11 @@ RUN curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg \
 # Uncomment when needed:
 # RUN npm install -g @nicholasgasior/gog
 
-# Playwright browsers for browser tool (Chromium only)
-# Disabled for now to reduce memory footprint — uncomment when browser automation is needed
-# RUN node /app/node_modules/playwright-core/cli.js install --with-deps chromium || true
+# Playwright browsers for browser tool (Chromium only, headless)
+# --with-deps installs system libraries (libX11, fonts, etc.) needed by Chromium
+ENV PLAYWRIGHT_BROWSERS_PATH=/home/node/.cache/ms-playwright
+RUN node /app/node_modules/playwright-core/cli.js install --with-deps chromium \
+    && chown -R node:node /home/node/.cache/ms-playwright 2>/dev/null || true
 
 # ---------------------------------------------------------------------------
 # RAG Service — Python FastAPI sidecar for knowledge base search

@@ -20,6 +20,16 @@
     }
   },
 
+  "browser": {
+    "enabled": true,
+    "headless": true,
+    "noSandbox": true,
+    "defaultProfile": "openclaw",
+    "ssrfPolicy": {
+      "dangerouslyAllowPrivateNetwork": true
+    }
+  },
+
   "session": {
     "dmScope": "per-channel-peer",
     "reset": {
