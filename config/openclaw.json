@@ -15,7 +15,7 @@
       "mode": "token"
     },
     "controlUi": {
-      "allowedOrigins": ["https://revops-revx-ae440.sevalla.app"],
+      "allowedOrigins": ["https://revops-revx-ae440.sevalla.app", "http://localhost:5173"],
       "dangerouslyDisableDeviceAuth": true
     }
   },
