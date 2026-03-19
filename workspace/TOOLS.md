@@ -178,12 +178,75 @@ sf data create record --sobject CaseComment --values "ParentId='CASE_ID' Comment
 
 ---
 
+## Browser — Headless Chromium
+
+You have a **headless Chromium browser** running in this container. Use the `browser` tool to browse websites, test Salesforce UIs, verify deployments, and take screenshots.
+
+**Key facts:**
+- Headless mode — no GUI, no display. Everything is via the `browser` tool.
+- Profile: `openclaw` (default, auto-selected)
+- Chromium runs with `--no-sandbox` (required in Docker)
+- You CAN access internal/private network URLs (SSRF policy allows it)
+
+### When to Use the Browser
+- **Verify deployments** — Open the dev/QA org after a deploy, screenshot the page to confirm it looks right
+- **Test LWC components** — Navigate to a page with the component, snapshot the DOM, check for errors
+- **Salesforce UI checks** — Verify page layouts, record types, field visibility
+- **Web research** — When `web_fetch` isn't enough (JS-rendered pages, login-required sites)
+- **Screenshot evidence** — Capture before/after screenshots for PRs and case comments
+
+### Quick Reference
+```
+# Start and open a URL
+browser(action: "open", url: "https://example.com")
+
+# Take a screenshot
+browser(action: "screenshot")
+browser(action: "screenshot", fullPage: true)
+
+# Get page structure (for AI reasoning)
+browser(action: "snapshot", compact: true)
+
+# Click/type using refs from snapshot
+browser(action: "act", kind: "click", ref: "e12")
+browser(action: "act", kind: "type", ref: "e5", text: "hello")
+
+# Navigate
+browser(action: "navigate", url: "https://...")
+
+# Check console for errors
+browser(action: "console", level: "error")
+```
+
+### Salesforce Login Flow
+To access Salesforce orgs in the browser:
+1. Use `sf org open --target-org dev --url-only` to get a frontdoor login URL
+2. Open that URL in the browser — it auto-authenticates
+3. Then navigate to the specific page you need
+
+```bash
+# Get login URL for dev org
+sf org open --target-org dev --url-only 2>/dev/null
+# Returns: https://sanguinebio--dev.sandbox.my.salesforce.com/secur/frontdoor.jsp?sid=...
+
+# Then use browser tool to open it
+```
+
+### Limitations
+- No file downloads (no filesystem access from browser context)
+- No video/audio playback
+- Some sites may block headless browsers (use stealth if needed)
+- Memory-constrained — avoid opening many tabs simultaneously
+
+---
+
 ## Environment
 
 - Container OS: Debian Bookworm (Node 22)
 - SF CLI: latest
 - Python 3: available for scripting
 - Git: available
+- Chromium: headless (Playwright-managed)
 - RAG service: FastAPI on port 8081 (internal)
 - Persistent storage: `/var/lib/data/workspace`
 - Salesforce repo: `/home/node/.openclaw/workspace/salesforce/`
