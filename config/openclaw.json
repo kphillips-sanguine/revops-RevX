@@ -49,6 +49,11 @@
         }
       },
       "workspace": "/home/node/.openclaw/workspace",
+      "sandbox": {
+        "browser": {
+          "allowHostControl": true
+        }
+      },
       "compaction": {
         "mode": "safeguard"
       },
