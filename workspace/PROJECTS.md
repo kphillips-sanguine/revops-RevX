@@ -7,7 +7,13 @@
 
 ---
 
-## 🔥 RevX — Team OpenClaw on Sevalla
+## Inventory Resell
+
+## Partner Portal
+
+## AgentForge
+
+## 🔥 RevX — RevOps Team AgentT
 - **Case:** *(add Case Number)*
 - **Goal:** OpenClaw Gateway deployment for Sanguine Bio team
 - **Status:** Live — ongoing improvements

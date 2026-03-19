@@ -61,11 +61,13 @@ if [ -d "/var/lib/data" ]; then
       # Uses jq '*' (multiply/merge) which adds new keys without overwriting existing ones
       MERGED=$(jq -s '
         .[0] as $persist | .[1] as $baked |
-        $persist | .channels.slack.channels = ($baked.channels.slack.channels * $persist.channels.slack.channels)
+        $persist
+        | .channels.slack.channels = ($baked.channels.slack.channels * $persist.channels.slack.channels)
+        | .gateway.controlUi.allowedOrigins = ($baked.gateway.controlUi.allowedOrigins // $persist.gateway.controlUi.allowedOrigins)
       ' "$PERSISTENT_CONFIG" "$BAKED_CONFIG" 2>/dev/null) && \
         echo "$MERGED" > "$PERSISTENT_CONFIG" && \
-        echo "  ✅ Merged new Slack channels from baked config" || \
-        echo "  ⚠️ Channel merge skipped (jq error)"
+        echo "  ✅ Merged new config from baked image (channels + allowedOrigins)" || \
+        echo "  ⚠️ Config merge skipped (jq error)"
     fi
   fi
 
