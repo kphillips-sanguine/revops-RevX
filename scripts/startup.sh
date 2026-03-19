@@ -16,11 +16,14 @@ set -e
 # ─────────────────────────────────────────────────────────────────────────────
 
 PERSISTENT_WORKSPACE="/var/lib/data/workspace"
+PERSISTENT_CONFIG="/var/lib/data/openclaw.json"
 BAKED_WORKSPACE="/home/node/.openclaw/workspace"
+BAKED_CONFIG="/home/node/.openclaw/openclaw.json"
 
 echo "🔧 RevX startup: Setting up persistent storage..."
 
 if [ -d "/var/lib/data" ]; then
+  # ── Workspace persistence ──────────────────────────────────────────────
   if [ ! -d "$PERSISTENT_WORKSPACE" ]; then
     # First run: copy baked-in workspace to persistent storage
     echo "  📦 First run — copying workspace to persistent storage..."
@@ -40,8 +43,38 @@ if [ -d "/var/lib/data" ]; then
   rm -rf "$BAKED_WORKSPACE"
   ln -s "$PERSISTENT_WORKSPACE" "$BAKED_WORKSPACE"
   echo "  🔗 Workspace symlinked: $BAKED_WORKSPACE → $PERSISTENT_WORKSPACE"
+
+  # ── Config persistence ─────────────────────────────────────────────────
+  # Runtime config changes (e.g. adding Slack channels) must survive redeploys.
+  # Strategy: persistent copy wins, but baked-in config is used on first run.
+  if [ ! -f "$PERSISTENT_CONFIG" ]; then
+    # First run: seed persistent config from baked-in version
+    echo "  📦 First run — copying config to persistent storage..."
+    cp "$BAKED_CONFIG" "$PERSISTENT_CONFIG"
+    echo "  ✅ Config initialized on persistent storage"
+  else
+    # Subsequent run: keep the persistent (runtime-modified) config,
+    # but merge in any NEW Slack channels from the baked-in config.
+    echo "  📦 Persistent config exists — preserving runtime config"
+    if command -v jq >/dev/null 2>&1; then
+      # Merge new Slack channels from baked config into persistent config
+      # Uses jq '*' (multiply/merge) which adds new keys without overwriting existing ones
+      MERGED=$(jq -s '
+        .[0] as $persist | .[1] as $baked |
+        $persist | .channels.slack.channels = ($baked.channels.slack.channels * $persist.channels.slack.channels)
+      ' "$PERSISTENT_CONFIG" "$BAKED_CONFIG" 2>/dev/null) && \
+        echo "$MERGED" > "$PERSISTENT_CONFIG" && \
+        echo "  ✅ Merged new Slack channels from baked config" || \
+        echo "  ⚠️ Channel merge skipped (jq error)"
+    fi
+  fi
+
+  # Symlink config to persistent copy
+  rm -f "$BAKED_CONFIG"
+  ln -s "$PERSISTENT_CONFIG" "$BAKED_CONFIG"
+  echo "  🔗 Config symlinked: $BAKED_CONFIG → $PERSISTENT_CONFIG"
 else
-  echo "  ⚠️ /var/lib/data not mounted — using ephemeral workspace"
+  echo "  ⚠️ /var/lib/data not mounted — using ephemeral workspace + config"
 fi
 
 echo "🔧 RevX startup: Authenticating SF orgs..."
