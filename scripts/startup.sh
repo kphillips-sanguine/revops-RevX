@@ -33,7 +33,28 @@ if [ -d "/var/lib/data" ]; then
     # Subsequent run: merge new files only (don't overwrite existing)
     echo "  📦 Persistent workspace exists — merging new files..."
     cp -rn "$BAKED_WORKSPACE"/. "$PERSISTENT_WORKSPACE"/ 2>/dev/null || true
-    echo "  ✅ New files merged (existing files preserved)"
+
+    # Force-update agent config files from baked image (repo is source of truth)
+    # These are intentionally overwritten: SOUL.md, AGENTS.md, TOOLS.md, TEAM-GUIDE.md, TEAM.md
+    # Memory files, daily logs, and runtime-generated files are preserved by cp -rn above
+    echo "  📦 Updating agent config files from baked image..."
+    for agent_dir in "$BAKED_WORKSPACE"/*/; do
+      agent_name=$(basename "$agent_dir")
+      if [ -d "$PERSISTENT_WORKSPACE/$agent_name" ]; then
+        for cfg_file in SOUL.md AGENTS.md TOOLS.md STANDARDS.md; do
+          if [ -f "$agent_dir$cfg_file" ]; then
+            cp -f "$agent_dir$cfg_file" "$PERSISTENT_WORKSPACE/$agent_name/$cfg_file"
+          fi
+        done
+      fi
+    done
+    # Also update top-level workspace config files
+    for top_file in SOUL.md AGENTS.md TOOLS.md TEAM-GUIDE.md TEAM.md IDENTITY.md HEARTBEAT.md; do
+      if [ -f "$BAKED_WORKSPACE/$top_file" ]; then
+        cp -f "$BAKED_WORKSPACE/$top_file" "$PERSISTENT_WORKSPACE/$top_file"
+      fi
+    done
+    echo "  ✅ Agent config files updated, runtime files preserved"
   fi
 
   # Ensure memory directory exists
@@ -57,16 +78,53 @@ if [ -d "/var/lib/data" ]; then
     # but merge in any NEW Slack channels from the baked-in config.
     echo "  📦 Persistent config exists — preserving runtime config"
     if command -v jq >/dev/null 2>&1; then
-      # Merge new Slack channels from baked config into persistent config
-      # Uses jq '*' (multiply/merge) which adds new keys without overwriting existing ones
+      # Merge baked config into persistent config:
+      #   - Slack channels: add new, preserve existing (runtime may have added channels)
+      #   - allowedOrigins: take baked version (repo is source of truth)
+      #   - agents.list: add new agents by id, update identity/name/model for existing
+      #   - agents.list[].subagents.allowAgents: union of baked + persistent
+      #   - browser config: take baked version
       MERGED=$(jq -s '
         .[0] as $persist | .[1] as $baked |
+
+        # Find new agents (in baked but not in persistent, by id)
+        ($persist.agents.list | map(.id)) as $pids |
+        ($baked.agents.list | map(select(.id as $i | $pids | index($i) | not))) as $new_agents |
+
         $persist
+
+        # Merge Slack channels (new keys from baked, existing preserved)
         | .channels.slack.channels = ($baked.channels.slack.channels * $persist.channels.slack.channels)
+
+        # Take baked allowedOrigins
         | .gateway.controlUi.allowedOrigins = ($baked.gateway.controlUi.allowedOrigins // $persist.gateway.controlUi.allowedOrigins)
+
+        # Take baked browser config
+        | .browser = ($baked.browser // $persist.browser)
+
+        # Update existing agents (identity, name, model, sandbox from baked; preserve runtime additions)
+        # Then append brand-new agents
+        | .agents.list = ([
+            $persist.agents.list[] | . as $p |
+            ([$baked.agents.list[] | select(.id == $p.id)] | first) as $b |
+            if $b then
+              $p
+              | .name = $b.name
+              | .identity = $b.identity
+              | if $b.model then .model = $b.model else . end
+              | if $b.sandbox then .sandbox = $b.sandbox else . end
+              | if $b.subagents then
+                  .subagents = ((.subagents // {}) | .allowAgents = ((($b.subagents.allowAgents // []) + (.allowAgents // [])) | unique))
+                else . end
+            else $p end
+          ] + $new_agents)
+
+        # Take baked agents.defaults (repo is source of truth for defaults)
+        | .agents.defaults = ($baked.agents.defaults // $persist.agents.defaults)
+
       ' "$PERSISTENT_CONFIG" "$BAKED_CONFIG" 2>/dev/null) && \
         echo "$MERGED" > "$PERSISTENT_CONFIG" && \
-        echo "  ✅ Merged new config from baked image (channels + allowedOrigins)" || \
+        echo "  ✅ Merged baked config into persistent (channels + origins + agents + browser)" || \
         echo "  ⚠️ Config merge skipped (jq error)"
     fi
   fi

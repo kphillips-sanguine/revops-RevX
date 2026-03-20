@@ -75,32 +75,36 @@ RevX isn't just one agent — it's a team of four, each with a specific role:
 
 ---
 
-### 🖱️ Click Ops — The Admin Agent
-**What it does:** Handles declarative Salesforce admin changes — custom fields, page layouts, picklist values, and permissions. No code involved.
+### 🪄 Merlin — The Admin Agent
+**What it does:** Handles declarative Salesforce admin changes — custom fields, objects, page layouts, picklist values, record types, and permissions. No code involved. Can also navigate the Salesforce Setup UI directly via browser when needed.
 
-**Talk to Click Ops (through RevX) when you need:**
-- A new custom field added to an object
+**Talk to Merlin (through RevX) when you need:**
+- A new custom field or object created
 - Fields added to or rearranged on a page layout
 - New picklist values added (standard, custom, or global value sets)
 - Field-level security or permission set updates
-- Record type picklist value assignments changed
+- Record type configuration or picklist value assignments changed
+- Any Setup-level change that doesn't require code
 
 **What to expect:**
-1. Click Ops researches the current state of the org (existing fields, layouts, permissions)
-2. It retrieves the relevant metadata via SF CLI
-3. It makes precise XML metadata changes
-4. It deploys to dev first, verifies, then promotes as directed
+1. Merlin researches the current state of the org (existing fields, layouts, permissions)
+2. It retrieves the relevant metadata via SF CLI (or browses Setup directly)
+3. It makes precise metadata changes
+4. It **always asks before deploying** — even to dev
+5. It verifies the deployment succeeded and shows you the result
 
 **What it does NOT do:**
 - Write Apex, LWC, or any code (that's Code Monkey's job)
 - Build complex automation (Flows, Process Builder)
-- Make changes directly to production without approval
+- Deploy without your explicit approval
+- Handle DevOps/CI/CD (that's Piper's job)
 
 **Examples:**
 > "Add a 'Preferred Contact Method' picklist to the Contact object"
 > "Add the new field to the Contact page layout"
 > "Give the Sales team read access to the new field"
 > "Add 'Referral' as a new Lead Source picklist value"
+> "Create a new record type on Opportunity for Partner Deals"
 
 ---
 
@@ -225,7 +229,7 @@ Ask RevX anytime:
 │  ⚡ RevX (Opus)          — Coordinator        │
 │  🎯 Spec Ops (Sonnet 4)  — Requirements      │
 │  🐒 Code Monkey (Sonnet 4) — Developer       │
-│  🖱️ Click Ops (Sonnet 4)  — Admin            │
+│  🪄 Merlin (Sonnet 4)     — Admin            │
 │  🧠 RAG Service           — Knowledge Base    │
 │  🔧 SF CLI                — Org Access        │
 │  📂 Git                   — Code Management   │

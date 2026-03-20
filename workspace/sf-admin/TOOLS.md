@@ -1,9 +1,9 @@
-# TOOLS.md — Click Ops (SF Admin Agent)
+# TOOLS.md — Merlin 🪄 (SF Admin Agent)
 
 ## Salesforce CLI
 
 **Org aliases:**
-- `prod` — Production (READ ONLY unless explicitly told otherwise)
+- `prod` — Production (⚠️ DO NOT deploy without explicit approval)
 - `dev` — Development sandbox (default target for changes)
 - `qa` — QA sandbox
 
@@ -15,6 +15,7 @@ sf project retrieve start --metadata Layout:Account-Account_Layout --target-org 
 sf project retrieve start --metadata PermissionSet:My_Perm_Set --target-org dev --output-dir temp/
 sf project retrieve start --metadata Profile:Admin --target-org dev --output-dir temp/
 sf project retrieve start --metadata GlobalValueSet:My_Global_Set --target-org dev --output-dir temp/
+sf project retrieve start --metadata RecordType:Account.Business_Account --target-org dev --output-dir temp/
 
 # Retrieve multiple items
 sf project retrieve start --metadata "CustomField:Account.My_Field__c,Layout:Account-Account_Layout" --target-org dev --output-dir temp/
@@ -22,10 +23,12 @@ sf project retrieve start --metadata "CustomField:Account.My_Field__c,Layout:Acc
 
 ### Metadata Deployment
 ```bash
+# 🛑 ALWAYS ASK BEFORE RUNNING DEPLOY COMMANDS
+
 # Deploy from a directory
 sf project deploy start --source-dir temp/ --target-org dev
 
-# Deploy with specific tests (if needed)
+# Deploy with no tests (admin metadata usually doesn't need tests)
 sf project deploy start --source-dir temp/ --target-org dev --test-level NoTestRun
 
 # Check deploy status
@@ -54,7 +57,43 @@ sf data query --query "SELECT DeveloperName, Name, IsActive FROM RecordType WHER
 
 # List profiles
 sf data query --query "SELECT Id, Name FROM Profile ORDER BY Name" --target-org dev
+
+# List objects
+sf data query --query "SELECT QualifiedApiName, Label, IsCustom FROM EntityDefinition WHERE IsCustomizable = true ORDER BY Label" --target-org dev
 ```
+
+## Browser (Playwright)
+
+Use the OpenClaw browser tool to navigate Salesforce Setup UI.
+
+### Getting a Login URL
+```bash
+# Get frontdoor URL for browser login
+sf org open --target-org dev --url-only
+```
+
+### Common Setup Navigation
+After logging in via the browser tool:
+- **Setup Home:** `/lightning/setup/SetupOneHome/home`
+- **Object Manager:** `/lightning/setup/ObjectManager/home`
+- **Specific Object:** `/lightning/setup/ObjectManager/<ObjectApiName>/FieldsAndRelationships`
+- **Permission Sets:** `/lightning/setup/PermSets/home`
+- **Profiles:** `/lightning/setup/EnhancedProfiles/home`
+- **Page Layouts:** Object Manager → [Object] → Page Layouts
+
+### When to Use Browser vs Metadata API
+| Task | Preferred Method |
+|------|-----------------|
+| Add/edit custom fields | Metadata API (SF CLI) |
+| Update page layouts | Metadata API (SF CLI) |
+| Update permissions (FLS, CRUD) | Metadata API (SF CLI) |
+| Manage picklist values | Metadata API (SF CLI) |
+| Compact layouts | Browser (Setup UI) |
+| Lightning page assignments | Browser (Setup UI) |
+| Quick actions | Browser (Setup UI) |
+| Verify changes visually | Browser (Setup UI) |
+| Troubleshoot layout issues | Browser (Setup UI) |
+| Record type page layout assignment | Either (browser is often easier) |
 
 ## RAG Knowledge Base
 
@@ -63,7 +102,22 @@ Search for Salesforce admin documentation:
 rag search "page layout best practices"
 rag search "field level security"
 rag search "picklist values metadata"
+rag search "record type configuration"
 ```
+
+## Delegation
+
+### DevOps → Piper
+When changes need to be promoted between orgs or handled through CI/CD, delegate to Piper:
+- Provide the list of metadata components
+- Specify source and target orgs
+- Let Piper handle the pipeline
+
+### Code → Code Monkey 🐒
+If a request needs Apex, LWC, triggers, or any code:
+- Hand it off to Code Monkey
+- Provide context about what the code needs to do
+- You handle the declarative side; Code Monkey handles the code side
 
 ## Metadata XML Quick Reference
 
@@ -134,4 +188,20 @@ rag search "picklist values metadata"
     <object>My_Object__c</object>
     <viewAllRecords>false</viewAllRecords>
 </objectPermissions>
+```
+
+### Record Type
+```xml
+<recordTypes>
+    <fullName>Business_Account</fullName>
+    <active>true</active>
+    <label>Business Account</label>
+    <picklistValues>
+        <picklist>Industry</picklist>
+        <values>
+            <fullName>Technology</fullName>
+            <default>false</default>
+        </values>
+    </picklistValues>
+</recordTypes>
 ```
