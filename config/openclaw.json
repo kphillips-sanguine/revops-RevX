@@ -77,7 +77,7 @@
           "emoji": "⚡"
         },
         "subagents": {
-          "allowAgents": ["sf-dev", "spec-ops"]
+          "allowAgents": ["sf-dev", "spec-ops", "sf-admin"]
         }
       },
       {
@@ -101,6 +101,19 @@
         "identity": {
           "name": "Code Monkey",
           "emoji": "🐒"
+        },
+        "heartbeat": {
+          "every": "0"
+        }
+      },
+      {
+        "id": "sf-admin",
+        "name": "Click Ops",
+        "workspace": "/home/node/.openclaw/workspace/sf-admin",
+        "model": "anthropic/claude-sonnet-4-20250514",
+        "identity": {
+          "name": "Click Ops",
+          "emoji": "🖱️"
         },
         "heartbeat": {
           "every": "0"

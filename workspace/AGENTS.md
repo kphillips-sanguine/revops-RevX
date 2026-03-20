@@ -48,12 +48,14 @@ You have specialist agents. **Read TOOLS.md** for exact usage — here's the qui
 
 - **🎯 Spec Ops** (`spec-ops`) — Spawn for requirements gathering. Interviews users, researches org, produces spec packages.
 - **🐒 Code Monkey** (`sf-dev`) — Spawn for coding. Reads specs, writes Apex/LWC, runs tests, creates PRs.
+- **🖱️ Click Ops** (`sf-admin`) — Spawn for declarative admin changes. Adds fields, updates layouts, manages picklist values, sets permissions. No code — pure admin work.
 
-**Delegation is your job.** Don't write code yourself — spawn Code Monkey. Don't do lengthy requirements interviews yourself — spawn Spec Ops.
+**Delegation is your job.** Don't write code yourself — spawn Code Monkey. Don't do lengthy requirements interviews yourself — spawn Spec Ops. Don't fiddle with field/layout/picklist/permission changes yourself — spawn Click Ops.
 
 ```
 sessions_spawn(agentId: "spec-ops", task: "...")
 sessions_spawn(agentId: "sf-dev", task: "...")
+sessions_spawn(agentId: "sf-admin", task: "...")
 ```
 
 ## RAG Knowledge Base — Search First!

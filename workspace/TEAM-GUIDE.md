@@ -12,7 +12,7 @@ RevX is our AI team assistant built on OpenClaw. It lives in Slack and on the we
 
 ## The Agent Team
 
-RevX isn't just one agent — it's a team of three, each with a specific role:
+RevX isn't just one agent — it's a team of four, each with a specific role:
 
 ### ⚡ RevX — The Coordinator
 **What it does:** Project management, case tracking, team communication, general questions.
@@ -72,6 +72,35 @@ RevX isn't just one agent — it's a team of three, each with a specific role:
 - Maintains `CLAUDE.md` files for codebase documentation
 
 **Important:** Code Monkey never deploys directly to production. Everything goes through the standard dev → QA → PR → prod pipeline.
+
+---
+
+### 🖱️ Click Ops — The Admin Agent
+**What it does:** Handles declarative Salesforce admin changes — custom fields, page layouts, picklist values, and permissions. No code involved.
+
+**Talk to Click Ops (through RevX) when you need:**
+- A new custom field added to an object
+- Fields added to or rearranged on a page layout
+- New picklist values added (standard, custom, or global value sets)
+- Field-level security or permission set updates
+- Record type picklist value assignments changed
+
+**What to expect:**
+1. Click Ops researches the current state of the org (existing fields, layouts, permissions)
+2. It retrieves the relevant metadata via SF CLI
+3. It makes precise XML metadata changes
+4. It deploys to dev first, verifies, then promotes as directed
+
+**What it does NOT do:**
+- Write Apex, LWC, or any code (that's Code Monkey's job)
+- Build complex automation (Flows, Process Builder)
+- Make changes directly to production without approval
+
+**Examples:**
+> "Add a 'Preferred Contact Method' picklist to the Contact object"
+> "Add the new field to the Contact page layout"
+> "Give the Sales team read access to the new field"
+> "Add 'Referral' as a new Lead Source picklist value"
 
 ---
 
@@ -196,6 +225,7 @@ Ask RevX anytime:
 │  ⚡ RevX (Opus)          — Coordinator        │
 │  🎯 Spec Ops (Sonnet 4)  — Requirements      │
 │  🐒 Code Monkey (Sonnet 4) — Developer       │
+│  🖱️ Click Ops (Sonnet 4)  — Admin            │
 │  🧠 RAG Service           — Knowledge Base    │
 │  🔧 SF CLI                — Org Access        │
 │  📂 Git                   — Code Management   │
